@@ -24,7 +24,7 @@
 	// Fetch todos
 	async function fetchTodos() {
 		if (!session?.user?.id) {
-			console.error("No user session found");
+			console.error('No user session found');
 			return;
 		}
 
@@ -98,40 +98,73 @@
 	}
 </script>
 
-
-<div class="hero bg-base-300 min-h-screen pt-20">
+<div class="min-h-screen px-4 pt-32 md:pt-20">
 	<div class="hero-content flex h-full w-full flex-col items-center justify-center text-center">
-		<div class="max-w-md space-y-4">
-			<h1 class="text-4xl font-bold text-black">{email}'s Page</h1>
+		<div class="w-full max-w-md space-y-4">
+			<h1 class="text-3xl font-bold break-words text-white sm:text-4xl">{email}'s Page</h1>
 
 			<!-- Input to add a new todo -->
-			<div class="flex gap-2">
+			<div class="flex flex-col gap-2 sm:flex-row">
 				<input
 					bind:value={newTodo}
 					placeholder="Enter a new todo"
 					class="input input-bordered w-full"
 				/>
-				<button on:click={addTodo} class="btn btn-primary">Add</button>
+				<button
+					type="button"
+					class="btn preset-filled-success-500 w-full sm:w-auto"
+					on:click={addTodo}>Add</button
+				>
 			</div>
 
 			<!-- Todo list -->
 			{#if todos.length > 0}
 				<ul class="space-y-2 text-left">
 					{#each todos as todo}
-						<li class="flex items-center justify-between rounded bg-white p-2 shadow gap-2">
+						<li
+							class="flex flex-col items-center justify-center gap-2 rounded bg-white p-2 text-center shadow sm:flex-row sm:items-center sm:justify-between sm:text-left"
+						>
 							{#if editingId === todo.id}
-								<input
-									bind:this={editInputEl}
-									bind:value={editingText}
-									class="input input-bordered flex-1"
-									on:keydown={(e) => e.key === 'Enter' && updateTodo()}
-								/>
-								<button on:click={updateTodo} class="btn btn-sm btn-success">Save</button>
-								<button on:click={cancelEditing} class="btn btn-sm">Cancel</button>
+								<div class="flex w-full flex-col gap-2 sm:flex-row">
+									<input
+										bind:this={editInputEl}
+										bind:value={editingText}
+										class="input input-bordered flex-1 text-black"
+										on:keydown={(e) => e.key === 'Enter' && updateTodo()}
+									/>
+									<div
+										class="flex items-center justify-center gap-2 sm:flex-row sm:justify-between"
+									>
+										<button
+											on:click={updateTodo}
+											type="button"
+											class="btn preset-filled-success-500 text-sucess-500">Save</button
+										>
+										<button
+											on:click={cancelEditing}
+											type="button"
+											class="btn preset-outlined-warning-500 text-warning-500">Cancel</button
+										>
+									</div>
+								</div>
 							{:else}
-								<span class="text-black flex-1">{todo.description}</span>
-								<button on:click={() => startEditing(todo)} class="btn btn-sm btn-accent">Edit</button>
-								<button on:click={() => deleteTodo(todo.id)} class="btn btn-sm btn-error">Delete</button>
+								<div class="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+									<span class="flex-1 text-black">{todo.description}</span>
+									<div
+										class="flex w-full items-center justify-center gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-between"
+									>
+										<button
+											on:click={() => startEditing(todo)}
+											type="button"
+											class="btn preset-outlined-primary-500 text-primary-500">Edit</button
+										>
+										<button
+											on:click={() => deleteTodo(todo.id)}
+											type="button"
+											class="btn preset-outlined-error-500 text-error-500">Delete</button
+										>
+									</div>
+								</div>
 							{/if}
 						</li>
 					{/each}
@@ -142,4 +175,3 @@
 		</div>
 	</div>
 </div>
-
