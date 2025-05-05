@@ -1,14 +1,20 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import {
+		fetchTodos as fetchTodosService,
+		addTodo as addTodoService,
+		deleteTodo as deleteTodoService,
+		updateTodo as updateTodoService,
+		type Todo
+	} from '$lib/services/todos-service';
 
 	export let data;
 	let { supabase, session } = data;
 	$: ({ supabase, session } = data);
 	$: email = $page.params.email;
 
-	let todos: any[] = [];
+	let todos: Todo[] = [];
 	let newTodo = '';
 
 	let editingId: number | null = null;
@@ -22,17 +28,12 @@
 			return;
 		}
 
-		const { data, error } = await supabase
-			.from('todos')
-			.select('*')
-			.eq('user_id', session.user.id);
-
+		const { data, error } = await fetchTodosService(supabase, session.user.id);
 		if (error) {
-			console.error('Error fetching todos:', error);
-			return;
+			console.error('Error fetching todos:', error.message);
+		} else {
+			todos = data ?? [];
 		}
-
-		todos = data ?? [];
 	}
 
 	onMount(() => {
@@ -49,15 +50,9 @@
 			return;
 		}
 
-		const { error } = await supabase.from('todos').insert([
-			{
-				description: newTodo,
-				user_id: session.user.id
-			}
-		]);
-
+		const { error } = await addTodoService(supabase, session.user.id, newTodo);
 		if (error) {
-			console.error('Error adding todo:', error);
+			console.error('Error adding todo:', error.message);
 		} else {
 			newTodo = '';
 			await fetchTodos();
@@ -66,15 +61,16 @@
 
 	// Delete a todo
 	async function deleteTodo(id: number) {
-		const { error } = await supabase.from('todos').delete().eq('id', id);
+		const { error } = await deleteTodoService(supabase, id);
 		if (error) {
-			console.error('Error deleting todo:', error);
+			console.error('Error deleting todo:', error.message);
 		} else {
 			await fetchTodos();
 		}
 	}
 
-	function startEditing(todo: any) {
+	// Start editing
+	function startEditing(todo: Todo) {
 		editingId = todo.id;
 		editingText = todo.description;
 		tick().then(() => {
@@ -82,27 +78,26 @@
 		});
 	}
 
+	// Cancel editing
 	function cancelEditing() {
 		editingId = null;
 		editingText = '';
 	}
 
+	// Update todo
 	async function updateTodo() {
 		if (!editingText.trim() || editingId === null) return;
 
-		const { error } = await supabase
-			.from('todos')
-			.update({ description: editingText })
-			.eq('id', editingId);
-
+		const { error } = await updateTodoService(supabase, editingId, editingText);
 		if (error) {
-			console.error('Error updating todo:', error);
+			console.error('Error updating todo:', error.message);
 		} else {
 			cancelEditing();
 			await fetchTodos();
 		}
 	}
 </script>
+
 
 <div class="hero bg-base-300 min-h-screen pt-20">
 	<div class="hero-content flex h-full w-full flex-col items-center justify-center text-center">
