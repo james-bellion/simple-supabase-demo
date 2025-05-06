@@ -4,6 +4,7 @@
 	import '../app.css';
 	import Fa from 'svelte-fa';
 	import { faHome } from '@fortawesome/free-solid-svg-icons';
+	import LoadingSpinnerOverlay from '$lib/components/LoadingSpinnerOverlay.svelte';
 
 	const { data, children } = $props();
 
@@ -70,5 +71,7 @@
 		</div>
 	</div>
 </div>
+
+<LoadingSpinnerOverlay />
 
 {@render children()}

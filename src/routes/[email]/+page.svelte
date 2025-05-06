@@ -1,34 +1,41 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { isLoadingStore } from '$lib/components/LoadingSpinnerOverlay.svelte';
+	import type { Todo } from '$lib/services/todos-service';
 	import { onMount, tick } from 'svelte';
-	import {
-		fetchTodos as fetchTodosService,
-		addTodo as addTodoService,
-		deleteTodo as deleteTodoService,
-		updateTodo as updateTodoService,
-		type Todo
-	} from '$lib/services/todos-service';
 
 	export let data;
-	let { supabase, session } = data;
-	$: ({ supabase, session } = data);
+	let { session, todosService } = data;
+	$: ({ session, todosService } = data);
 	$: email = $page.params.email;
+
+	$: {
+		console.log('Loading state:', $isLoadingStore); // Add logging to verify state changes
+	}
 
 	let todos: Todo[] = [];
 	let newTodo = '';
-
 	let editingId: number | null = null;
 	let editingText = '';
 	let editInputEl: HTMLInputElement | null = null;
 
-	// Fetch todos
-	async function fetchTodos() {
-		if (!session?.user?.id) {
-			console.error('No user session found');
-			return;
-		}
+	onMount(fetchTodos);
 
-		const { data, error } = await fetchTodosService(supabase, session.user.id);
+	//------------Helper functions to make the API calls -------------//
+
+	// TODO: Could improve by avoid making multiple fetch API calls after making changes.
+	// store state and only refetch when navigating to or refreshing the page.
+	// update table to include and order number of Todos.
+
+	/**
+	 * Local fetch to keep data in sync
+	 */
+	async function fetchTodos() {
+		if (!session?.user?.id) return;
+
+		$isLoadingStore = true;
+		const { data, error } = await todosService.fetchTodos(session.user.id);
+		$isLoadingStore = false;
 		if (error) {
 			console.error('Error fetching todos:', error.message);
 		} else {
@@ -36,21 +43,12 @@
 		}
 	}
 
-	onMount(() => {
-		console.log('onMount triggered');
-		fetchTodos();
-	});
-
-	// Add a new todo
 	async function addTodo() {
-		if (!newTodo.trim()) return;
+		if (!newTodo.trim() || !session?.user?.id) return;
 
-		if (!session?.user?.id) {
-			console.error('No user session available.');
-			return;
-		}
-
-		const { error } = await addTodoService(supabase, session.user.id, newTodo);
+		$isLoadingStore = true;
+		const { error } = await todosService.addTodo(session.user.id, newTodo);
+		$isLoadingStore = false;
 		if (error) {
 			console.error('Error adding todo:', error.message);
 		} else {
@@ -59,9 +57,10 @@
 		}
 	}
 
-	// Delete a todo
 	async function deleteTodo(id: number) {
-		const { error } = await deleteTodoService(supabase, id);
+		$isLoadingStore = true;
+		const { error } = await todosService.deleteTodo(id);
+		$isLoadingStore = false;
 		if (error) {
 			console.error('Error deleting todo:', error.message);
 		} else {
@@ -69,32 +68,31 @@
 		}
 	}
 
-	// Start editing
-	function startEditing(todo: Todo) {
-		editingId = todo.id;
-		editingText = todo.description;
-		tick().then(() => {
-			editInputEl?.focus();
-		});
-	}
-
-	// Cancel editing
-	function cancelEditing() {
-		editingId = null;
-		editingText = '';
-	}
-
-	// Update todo
 	async function updateTodo() {
 		if (!editingText.trim() || editingId === null) return;
 
-		const { error } = await updateTodoService(supabase, editingId, editingText);
+		$isLoadingStore = true;
+		const { error } = await todosService.updateTodo(editingId, editingText);
+		$isLoadingStore = false;
 		if (error) {
 			console.error('Error updating todo:', error.message);
 		} else {
 			cancelEditing();
 			await fetchTodos();
 		}
+	}
+
+	//------------ edit ----------//
+
+	function startEditing(todo: Todo) {
+		editingId = todo.id;
+		editingText = todo.description;
+		tick().then(() => editInputEl?.focus());
+	}
+
+	function cancelEditing() {
+		editingId = null;
+		editingText = '';
 	}
 </script>
 
@@ -169,8 +167,6 @@
 						</li>
 					{/each}
 				</ul>
-			{:else}
-				<p>No todos found</p>
 			{/if}
 		</div>
 	</div>
